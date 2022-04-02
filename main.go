@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"rpgmaniac-discord-bot/config"
@@ -16,7 +17,8 @@ import (
 
 // Variables used for command line parameters
 var (
-	Token string
+	Token       string
+	CurrentGame Game
 )
 
 func init() {
@@ -27,6 +29,7 @@ func init() {
 
 func main() {
 	err := config.ReadConfig()
+	CurrentGame = determineGame(config.Game)
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -35,10 +38,16 @@ func main() {
 
 	// Create a new Discord session using the provided bot token.
 	dg, err := discordgo.New("Bot " + Token)
+
 	if err != nil {
 		fmt.Println("error creating Discord session,", err)
 		return
 	}
+
+	// Set status and current game
+	dg.Identify.Presence.Game.Name = string(CurrentGame)
+	dg.Identify.Presence.Game.Type = discordgo.ActivityTypeGame
+	dg.Identify.Presence.Status = string(discordgo.StatusDoNotDisturb)
 
 	// Register the messageCreate func as a callback for MessageCreate events.
 	dg.AddHandler(messageCreate)
@@ -58,7 +67,6 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
-
 	// Cleanly close down the Discord session.
 	dg.Close()
 }
@@ -90,5 +98,16 @@ func channelName(s *discordgo.Session, m *discordgo.MessageCreate) (string, erro
 		chName, err = s.Channel(m.ChannelID)
 	}
 	return chName.Name, err
+}
 
+func determineGame(game string) Game {
+	if strings.Contains(game, "alien") {
+		return GameAlien
+	}
+
+	if strings.Contains(game, "tales") {
+		return GameTales
+	}
+
+	return GameUnsupported
 }
