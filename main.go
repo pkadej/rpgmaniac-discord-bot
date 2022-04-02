@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"rpgmaniac-discord-bot/config"
+	"rpgmaniac-discord-bot/dice"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -74,14 +76,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	channelName, _ := channelName(s, m)
 
 	// If the message is "ping" reply with "Pong!"
-	if m.Content == "ping" && channelName == config.Channel {
-		s.ChannelMessageSend(m.ChannelID, "Pong! ")
+	if dice.IsDiceMessage(m.Content) && channelName == config.Channel {
+		s.ChannelMessageSend(m.ChannelID, "Rolled: "+strconv.Itoa(dice.CalculateDices(m.Content)))
 	}
 
 }
 
+// TODO: refactor to separate package
 func channelName(s *discordgo.Session, m *discordgo.MessageCreate) (string, error) {
 	chName, err := s.State.Channel(m.ChannelID)
+
 	if err != nil {
 		chName, err = s.Channel(m.ChannelID)
 	}
