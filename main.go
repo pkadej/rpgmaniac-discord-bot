@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 	"syscall"
 
 	"rpgmaniac-discord-bot/config"
 	"rpgmaniac-discord-bot/dice"
+	"rpgmaniac-discord-bot/structs"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -18,7 +17,7 @@ import (
 // Variables used for command line parameters
 var (
 	Token       string
-	CurrentGame Game
+	CurrentGame structs.Game
 )
 
 func init() {
@@ -29,7 +28,7 @@ func init() {
 
 func main() {
 	err := config.ReadConfig()
-	CurrentGame = determineGame(config.Game)
+	CurrentGame = structs.DetermineGame(config.Game)
 
 	if err != nil {
 		fmt.Println(err.Error())
@@ -85,7 +84,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// If the message is "ping" reply with "Pong!"
 	if dice.IsDiceMessage(m.Content) && channelName == config.Channel {
-		s.ChannelMessageSend(m.ChannelID, "Rolled: "+strconv.Itoa(dice.CalculateDices(m.Content)))
+		s.ChannelMessageSend(m.ChannelID, dice.DescribeDices(m.Content))
 	}
 
 }
@@ -98,16 +97,4 @@ func channelName(s *discordgo.Session, m *discordgo.MessageCreate) (string, erro
 		chName, err = s.Channel(m.ChannelID)
 	}
 	return chName.Name, err
-}
-
-func determineGame(game string) Game {
-	if strings.Contains(game, "alien") {
-		return GameAlien
-	}
-
-	if strings.Contains(game, "tales") {
-		return GameTales
-	}
-
-	return GameUnsupported
 }
